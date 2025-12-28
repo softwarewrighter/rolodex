@@ -7,7 +7,8 @@ echo "Building Rolodex application..."
 cd "$(dirname "$0")/.."
 
 # Build with trunk in release mode, output to docs/ for GitHub Pages
-trunk build --release --dist docs
+# --public-url sets the base path for assets (needed for GitHub Pages subdirectory)
+trunk build --release --dist docs --public-url /rolodex/
 
 # Add .nojekyll file for GitHub Pages (prevents Jekyll processing)
 touch docs/.nojekyll

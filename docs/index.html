@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rolodex</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="stylesheet" href="/styles-9d635ffcff66a3e0.css" integrity="sha384-5g3NYVlA7jrvv87XGIEr3clgXf436X9FEyLQ+fdzxKXjr4bSIMFncAvJxU+Yc/wf"/>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="/rolodex/styles-9d635ffcff66a3e0.css" integrity="sha384-5g3NYVlA7jrvv87XGIEr3clgXf436X9FEyLQ+fdzxKXjr4bSIMFncAvJxU+Yc/wf"/>
     <script type="importmap">
     {
         "imports": {
@@ -13,13 +13,13 @@
         }
     }
     </script>
-<link rel="modulepreload" href="/rolodex-6e4305dc34b00c76.js" crossorigin="anonymous" integrity="sha384-S1utuJI3ugohKAhcrxO6yIqFMqpXJA6ICbViAm9GQdmx9hbFppBPwo811Lp4gnJ8"><link rel="modulepreload" href="/snippets/rolodex-081f55a69c86fccf/js/rolodex3d.js" crossorigin="anonymous" integrity="sha384-dxL7DJThhKzUDtMjEncFtxVsI4pzotEManEqFVINE7R8oEjWCVWrsqOudVVE9cSu"><link rel="preload" href="/rolodex-6e4305dc34b00c76_bg.wasm" crossorigin="anonymous" integrity="sha384-ICNaBV03L31rClhrhw3n+7bxW9zOM7Gk8t7w85Q+XsHKS5BZ6plITi6Aq79PMAot" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/rolodex/rolodex-6e4305dc34b00c76.js" crossorigin="anonymous" integrity="sha384-v7SmWoIzdg76Wkz+lJ5kOK2JtCSaTSPVNtZ7vrsIeVvJyR5puMEVf8WLZjqR3ric"><link rel="modulepreload" href="/rolodex/snippets/rolodex-081f55a69c86fccf/js/rolodex3d.js" crossorigin="anonymous" integrity="sha384-dxL7DJThhKzUDtMjEncFtxVsI4pzotEManEqFVINE7R8oEjWCVWrsqOudVVE9cSu"><link rel="preload" href="/rolodex/rolodex-6e4305dc34b00c76_bg.wasm" crossorigin="anonymous" integrity="sha384-C+dWox/rugD9NcwEHarqVtujkYNzwvNsv6NEIFc37uAd82EAw9rsrsVAkglsD2Qe" as="fetch" type="application/wasm"></head>
 <body>
     <div id="app"></div>
     
 <script type="module">
-import init, * as bindings from '/rolodex-6e4305dc34b00c76.js';
-const wasm = await init({ module_or_path: '/rolodex-6e4305dc34b00c76_bg.wasm' });
+import init, * as bindings from '/rolodex/rolodex-6e4305dc34b00c76.js';
+const wasm = await init({ module_or_path: '/rolodex/rolodex-6e4305dc34b00c76_bg.wasm' });
 
 
 window.wasmBindings = bindings;
