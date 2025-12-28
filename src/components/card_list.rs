@@ -1,4 +1,6 @@
 use crate::card::Card;
+use wasm_bindgen::JsCast;
+use web_sys::Element;
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
@@ -12,8 +14,30 @@ pub struct CardListProps {
 
 #[function_component(CardList)]
 pub fn card_list(props: &CardListProps) -> Html {
+    let list_ref = use_node_ref();
+
+    // Scroll to selected card when selected_index changes
+    {
+        let list_ref = list_ref.clone();
+        let selected_index = props.selected_index;
+        use_effect_with(selected_index, move |idx| {
+            if let Some(index) = idx {
+                if let Some(list_el) = list_ref.cast::<Element>() {
+                    if let Ok(children) = list_el.query_selector_all(".card-item") {
+                        if let Some(child) = children.get(*index as u32) {
+                            if let Ok(element) = child.dyn_into::<Element>() {
+                                element.scroll_into_view_with_bool(true);
+                            }
+                        }
+                    }
+                }
+            }
+            || ()
+        });
+    }
+
     html! {
-        <div class="card-list">
+        <div class="card-list" ref={list_ref}>
             {props.cards.iter().enumerate().map(|(index, card)| {
                 let on_edit = {
                     let on_edit = props.on_edit.clone();

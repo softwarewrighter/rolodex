@@ -109,26 +109,13 @@ pub struct Rolodex3DProps {
 #[function_component(Rolodex3D)]
 pub fn rolodex_3d(props: &Rolodex3DProps) -> Html {
     let initialized = use_state(|| false);
+    let callback_set = use_state(|| false);
 
-    // Initialize Three.js scene and set up click callback
+    // Initialize Three.js scene once on mount
     {
         let initialized = initialized.clone();
-        let on_card_click = props.on_card_click.clone();
-
-        use_effect_with(on_card_click.clone(), move |on_card_click| {
+        use_effect_with((), move |_| {
             init_rolodex("rolodex-container");
-
-            // Set up callback for card clicks
-            let callback = on_card_click.clone();
-            let closure = Closure::new(move |_index: i32, card_id: String| {
-                callback.emit(card_id);
-            });
-
-            set_card_click_callback(&closure);
-
-            // Keep closure alive
-            closure.forget();
-
             initialized.set(true);
 
             || {
@@ -137,29 +124,57 @@ pub fn rolodex_3d(props: &Rolodex3DProps) -> Html {
         });
     }
 
-    // Update cards when they change
+    // Set up click callback (only once after initialization)
     {
-        let cards = props.cards.clone();
-        let initialized = initialized.clone();
-        use_effect_with(cards.clone(), move |cards| {
-            if *initialized {
-                if let Ok(json) = serde_json::to_string(cards) {
-                    update_cards(&json);
-                }
+        let on_card_click = props.on_card_click.clone();
+        let callback_set = callback_set.clone();
+        let is_initialized = *initialized;
+
+        use_effect_with(is_initialized, move |initialized| {
+            if *initialized && !*callback_set {
+                let closure = Closure::new(move |_index: i32, card_id: String| {
+                    on_card_click.emit(card_id);
+                });
+                set_card_click_callback(&closure);
+                closure.forget();
+                callback_set.set(true);
             }
             || ()
         });
     }
 
+    // Update cards when they change
+    {
+        let cards = props.cards.clone();
+        let is_initialized = *initialized;
+        use_effect_with(
+            (cards.clone(), is_initialized),
+            move |(cards, initialized)| {
+                if *initialized {
+                    if let Ok(json) = serde_json::to_string(cards) {
+                        update_cards(&json);
+                    }
+                }
+                || ()
+            },
+        );
+    }
+
     // Rotate to selected card
     {
         let selected_index = props.selected_index;
-        use_effect_with(selected_index, move |idx| {
-            if let Some(index) = idx {
-                rotate_to_card(*index as i32);
-            }
-            || ()
-        });
+        let is_initialized = *initialized;
+        use_effect_with(
+            (selected_index, is_initialized),
+            move |(idx, initialized)| {
+                if *initialized {
+                    if let Some(index) = idx {
+                        rotate_to_card(*index as i32);
+                    }
+                }
+                || ()
+            },
+        );
     }
 
     let on_prev = Callback::from(|_| {

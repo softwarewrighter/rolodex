@@ -11,10 +11,10 @@ let containerId = null;
 let onCardClickCallback = null;
 let raycaster, mouse;
 
-const CARD_WIDTH = 4;
-const CARD_HEIGHT = 2.5;
+const CARD_WIDTH = 5;
+const CARD_HEIGHT = 3;
 const CARD_DEPTH = 0.05;
-const ROLODEX_RADIUS = 5;
+const ROLODEX_RADIUS = 6;
 let CARD_SPACING = 15; // degrees between cards, adjusted dynamically based on card count
 
 export function initRolodex(containerIdParam) {
@@ -29,10 +29,10 @@ export function initRolodex(containerIdParam) {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a2e);
 
-    // Camera setup
+    // Camera setup - closer for better card visibility
     const aspect = container.clientWidth / container.clientHeight;
-    camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
-    camera.position.set(0, 2, 10);
+    camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
+    camera.position.set(0, 1, 8);
     camera.lookAt(0, 0, 0);
 
     // Renderer setup
@@ -120,10 +120,9 @@ function createRolodexStand() {
 }
 
 // Conveyor belt parameters
-const BELT_HEIGHT = 4;     // Height of the conveyor belt (y-axis extent)
-const BELT_DEPTH = 2;      // Depth of the conveyor belt (z-axis extent)
-const FRONT_CARD_COUNT = 8; // Number of cards visible in front section
-const TOTAL_TRACK_DEGREES = 360; // Full loop
+const BELT_HEIGHT = 5;     // Height of the conveyor belt (y-axis extent)
+const BELT_DEPTH = 2.5;    // Depth of the conveyor belt (z-axis extent)
+const FRONT_CARD_COUNT = 12; // Number of cards visible in front section
 
 // Calculate position on conveyor belt
 // Returns { y, z, rotationX } for a given position along the track
@@ -152,13 +151,13 @@ function calculateTrackPosition(index, totalCards) {
 
     // Many cards: front cards get more space, back cards are compressed
     if (index < FRONT_CARD_COUNT) {
-        // Front cards: spread across 0 to 0.4 (front visible section)
-        return (index / FRONT_CARD_COUNT) * 0.4;
+        // Front cards: spread across 0 to 0.5 (front visible section - more space)
+        return (index / FRONT_CARD_COUNT) * 0.5;
     } else {
-        // Back cards: compressed in 0.4 to 1.0 section
+        // Back cards: compressed in 0.5 to 1.0 section
         const backIndex = index - FRONT_CARD_COUNT;
         const backCount = totalCards - FRONT_CARD_COUNT;
-        return 0.4 + (backIndex / backCount) * 0.6;
+        return 0.5 + (backIndex / backCount) * 0.5;
     }
 }
 
@@ -169,61 +168,59 @@ function createCard(cardData, index, totalCards) {
     // Card geometry
     const geometry = new THREE.BoxGeometry(CARD_WIDTH, CARD_HEIGHT, CARD_DEPTH);
 
-    // Create canvas texture for card content
+    // Create canvas texture for card content - higher resolution for clarity
     const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 320;
+    canvas.width = 640;
+    canvas.height = 400;
     const ctx = canvas.getContext('2d');
 
-    // Card background with gradient
-    const gradient = ctx.createLinearGradient(0, 0, 0, 320);
-    gradient.addColorStop(0, '#f5f5f5');
-    gradient.addColorStop(1, '#e0e0e0');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 512, 320);
-
-    // Card border
-    ctx.strokeStyle = '#ccc';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(2, 2, 508, 316);
-
-    // Header bar
-    ctx.fillStyle = '#4fc3f7';
-    ctx.fillRect(0, 0, 512, 50);
-
-    // Text styling
+    // Card background - clean white
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 28px Arial';
-    ctx.fillText(cardData.name || 'New Card', 20, 35);
+    ctx.fillRect(0, 0, 640, 400);
 
-    ctx.fillStyle = '#333';
+    // Card border - darker for contrast
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(2, 2, 636, 396);
+
+    // Header bar - darker blue for contrast
+    ctx.fillStyle = '#1976d2';
+    ctx.fillRect(0, 0, 640, 65);
+
+    // Name - larger, bolder, white on blue
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 36px Arial';
+    ctx.fillText(cardData.name || 'New Card', 20, 45);
+
+    let yPos = 100;
+
+    // Company - prominent
+    if (cardData.company) {
+        ctx.fillStyle = '#1976d2';
+        ctx.font = 'bold 22px Arial';
+        ctx.fillText(cardData.company, 20, yPos);
+        yPos += 45;
+    }
+
+    // Contact info - high contrast black
+    ctx.fillStyle = '#000000';
     ctx.font = '20px Arial';
 
-    let yPos = 90;
-    if (cardData.company) {
-        ctx.fillStyle = '#666';
-        ctx.font = 'italic 18px Arial';
-        ctx.fillText(cardData.company, 20, yPos);
+    if (cardData.email) {
+        ctx.fillText(cardData.email, 20, yPos);
         yPos += 35;
     }
 
-    ctx.fillStyle = '#333';
-    ctx.font = '18px Arial';
-
-    if (cardData.email) {
-        ctx.fillText('Email: ' + cardData.email, 20, yPos);
-        yPos += 30;
-    }
-
     if (cardData.phone) {
-        ctx.fillText('Phone: ' + cardData.phone, 20, yPos);
-        yPos += 30;
+        ctx.fillText(cardData.phone, 20, yPos);
+        yPos += 35;
     }
 
+    // Notes - dark gray
     if (cardData.notes) {
-        ctx.fillStyle = '#888';
-        ctx.font = '14px Arial';
-        const notes = cardData.notes.substring(0, 60);
+        ctx.fillStyle = '#444';
+        ctx.font = '16px Arial';
+        const notes = cardData.notes.substring(0, 50);
         ctx.fillText(notes, 20, yPos);
     }
 
@@ -389,12 +386,12 @@ function onWheel(event) {
     // Accumulate scroll delta
     scrollAccumulator += event.deltaY;
 
-    // Navigate when threshold is reached
+    // Navigate when threshold is reached (inverted for natural scroll feel)
     if (Math.abs(scrollAccumulator) >= scrollThreshold) {
         if (scrollAccumulator > 0) {
-            rotateNext();
+            rotatePrev(); // Scroll down = previous card (natural direction)
         } else {
-            rotatePrev();
+            rotateNext(); // Scroll up = next card
         }
         scrollAccumulator = 0;
     }

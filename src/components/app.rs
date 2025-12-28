@@ -11,7 +11,7 @@ pub enum AppMsg {
     LoadCards,
     AddCard,
     EditCard(Card),
-    EditCardById(String),
+    SelectCardById(String),
     SaveCard(Card),
     DeleteCard(String),
     ClearAll,
@@ -63,10 +63,15 @@ impl Component for App {
                 self.show_form = true;
                 true
             }
-            AppMsg::EditCardById(id) => {
-                if let Some(card) = self.cards.iter().find(|c| c.id == id) {
-                    self.editing_card = Some(card.clone());
-                    self.show_form = true;
+            AppMsg::SelectCardById(id) => {
+                // Find the card in filtered_cards, select it, and open editor
+                if let Some(index) = self.filtered_cards.iter().position(|c| c.id == id) {
+                    self.selected_index = Some(index);
+                    // Also open the editor
+                    if let Some(card) = self.filtered_cards.get(index) {
+                        self.editing_card = Some(card.clone());
+                        self.show_form = true;
+                    }
                 }
                 true
             }
@@ -124,6 +129,11 @@ impl Component for App {
             }
             AppMsg::SelectCard(index) => {
                 self.selected_index = Some(index);
+                // Also open the editor
+                if let Some(card) = self.filtered_cards.get(index) {
+                    self.editing_card = Some(card.clone());
+                    self.show_form = true;
+                }
                 true
             }
         }
@@ -139,7 +149,7 @@ impl Component for App {
         let on_cancel = ctx.link().callback(|_| AppMsg::CancelForm);
         let on_search = ctx.link().callback(AppMsg::Search);
         let on_select = ctx.link().callback(AppMsg::SelectCard);
-        let on_card_click = ctx.link().callback(AppMsg::EditCardById);
+        let on_card_click = ctx.link().callback(AppMsg::SelectCardById);
 
         html! {
             <div class="app">
@@ -147,7 +157,7 @@ impl Component for App {
                     <svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true">
                         <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z" fill="#151513"></path>
                         <path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="#fff" class="octo-arm"></path>
-                        <path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C ## 155.9,114.1 155.6,113.4 C155.7,117.2 155.8,121.8 155.8,128.8 C155.9,132.6 154.3,135.7 150.6,135.8 C142.1,135.9 133.5,136.0 124.9,136.0 C121.4,136.0 119.2,132.7 119.4,129.6 C118.3,128.0 118.1,124.9 118.0,121.5" fill="#fff" class="octo-body"></path>
+                        <path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C155.9,114.9 152.3,118.4 152.3,121.6 C152.3,125.6 152.4,137.4 152.4,142.8 C152.5,147.0 149.9,151.6 143.8,151.6 C142.7,151.6 141.4,151.6 140.0,151.6" fill="#fff" class="octo-body"></path>
                     </svg>
                 </a>
                 <header class="app-header">
