@@ -6,6 +6,8 @@ pub struct CardFormProps {
     pub card: Option<Card>,
     pub on_save: Callback<Card>,
     pub on_cancel: Callback<()>,
+    #[prop_or_default]
+    pub on_delete: Option<Callback<String>>,
 }
 
 #[function_component(CardForm)]
@@ -102,11 +104,23 @@ pub fn card_form(props: &CardFormProps) -> Html {
         })
     };
 
+    let on_delete_click = {
+        let on_delete = props.on_delete.clone();
+        let card_id = card_id.clone();
+        Callback::from(move |_| {
+            if let Some(ref callback) = on_delete {
+                callback.emit(card_id.clone());
+            }
+        })
+    };
+
     let title = if is_editing {
         "Edit Card"
     } else {
         "Add New Card"
     };
+
+    let show_delete = is_editing && props.on_delete.is_some();
 
     html! {
         <div class="card-form-overlay">
@@ -167,6 +181,13 @@ pub fn card_form(props: &CardFormProps) -> Html {
                 <div class="form-actions">
                     <button type="submit" class="btn-primary">{"Save"}</button>
                     <button type="button" class="btn-secondary" onclick={on_cancel_click}>{"Cancel"}</button>
+                    {if show_delete {
+                        html! {
+                            <button type="button" class="btn-delete" onclick={on_delete_click}>{"Delete"}</button>
+                        }
+                    } else {
+                        html! {}
+                    }}
                 </div>
             </form>
         </div>

@@ -14,8 +14,6 @@ let raycaster, mouse;
 const CARD_WIDTH = 5;
 const CARD_HEIGHT = 3;
 const CARD_DEPTH = 0.05;
-const ROLODEX_RADIUS = 6;
-let CARD_SPACING = 15; // degrees between cards, adjusted dynamically based on card count
 
 export function initRolodex(containerIdParam) {
     containerId = containerIdParam;
@@ -120,45 +118,41 @@ function createRolodexStand() {
 }
 
 // Conveyor belt parameters
-const BELT_HEIGHT = 5;     // Height of the conveyor belt (y-axis extent)
-const BELT_DEPTH = 2.5;    // Depth of the conveyor belt (z-axis extent)
-const FRONT_CARD_COUNT = 12; // Number of cards visible in front section
+const BELT_HEIGHT = 8;      // Total height of the conveyor belt ellipse
+const BELT_DEPTH = 4;       // Depth of the conveyor belt (front to back)
+const FRONT_CARD_COUNT = 5; // Number of cards visible in the front arc
+const CENTER_OFFSET = 0.5;  // Track position that appears at eye level (center front)
 
-// Calculate position on conveyor belt
-// Returns { y, z, rotationX } for a given position along the track
-function getConveyorPosition(trackPosition) {
-    // trackPosition is 0-1 representing position along the conveyor belt
-    // 0 = front bottom, 0.25 = front top, 0.5 = back top, 0.75 = back bottom
+let selectedCardIndex = -1; // Currently selected card for highlighting
 
-    const angle = trackPosition * 2 * Math.PI;
-
-    // Elongated ellipse: taller in y, flatter in z
-    const y = BELT_HEIGHT * Math.sin(angle);
-    const z = BELT_DEPTH * Math.cos(angle);
-
-    // Card rotation to face camera (tangent to ellipse)
-    const rotationX = -angle;
-
-    return { y, z, rotationX };
+// Calculate track position (0-1) for a card based on its index
+// Index 0 should be at CENTER_OFFSET (eye level)
+function calculateTrackPosition(index, totalCards) {
+    if (totalCards <= 1) return CENTER_OFFSET;
+    // Spread cards evenly around the track, with index 0 at center
+    const spacing = 1.0 / totalCards;
+    return (CENTER_OFFSET + index * spacing) % 1.0;
 }
 
-// Calculate track position for a card index using hybrid spacing
-function calculateTrackPosition(index, totalCards) {
-    if (totalCards <= FRONT_CARD_COUNT) {
-        // Few cards: spread evenly across front section (0 to 0.5)
-        return (index / totalCards) * 0.5;
-    }
+// Get 3D position on conveyor belt from track position (0-1)
+// Track position 0.5 is center front (eye level), 0 and 1 are at the back
+function getConveyorPosition(trackPos) {
+    // Map track position to angle: 0.5 = front center, 0/1 = back
+    const angle = (trackPos - 0.5) * Math.PI * 2;
 
-    // Many cards: front cards get more space, back cards are compressed
-    if (index < FRONT_CARD_COUNT) {
-        // Front cards: spread across 0 to 0.5 (front visible section - more space)
-        return (index / FRONT_CARD_COUNT) * 0.5;
-    } else {
-        // Back cards: compressed in 0.5 to 1.0 section
-        const backIndex = index - FRONT_CARD_COUNT;
-        const backCount = totalCards - FRONT_CARD_COUNT;
-        return 0.5 + (backIndex / backCount) * 0.5;
-    }
+    // Y position: sine wave for vertical movement
+    // Front cards (around trackPos 0.5) are at y=0, back cards go up/down
+    const y = Math.sin(angle) * (BELT_HEIGHT / 2);
+
+    // Z position: cosine for depth (front/back)
+    // Front cards are closer (higher z), back cards are further (lower z)
+    const z = Math.cos(angle) * (BELT_DEPTH / 2) + BELT_DEPTH / 2 + 1;
+
+    // Rotation: cards tilt to face the camera
+    // Front cards face forward, back cards tilt away
+    const rotationX = -angle * 0.3;
+
+    return { y, z, rotationX };
 }
 
 function createCard(cardData, index, totalCards) {
@@ -327,17 +321,47 @@ function updateCardPositions() {
     });
 }
 
+// Update visual highlighting for selected card
+function updateCardHighlights() {
+    cardMeshes.forEach((group, index) => {
+        const card = group.children[0];
+        if (!card || !card.material) return;
+
+        const isSelected = index === selectedCardIndex;
+        const materials = card.material;
+
+        if (Array.isArray(materials)) {
+            // Update front face material (index 4) to show selection
+            const frontMat = materials[4];
+            if (frontMat) {
+                frontMat.emissive = isSelected ? new THREE.Color(0x44ff44) : new THREE.Color(0x000000);
+                frontMat.emissiveIntensity = isSelected ? 0.3 : 0;
+            }
+            // Add glow to sides when selected
+            materials.forEach((mat, i) => {
+                if (i !== 4 && mat.emissive !== undefined) {
+                    mat.emissive = isSelected ? new THREE.Color(0x44ff44) : new THREE.Color(0x000000);
+                    mat.emissiveIntensity = isSelected ? 0.2 : 0;
+                }
+            });
+        }
+    });
+}
+
 export function rotateToCard(index) {
     if (index < 0 || index >= cards.length) return;
     currentCardIndex = index;
-    // Calculate target offset to bring this card to the front (trackPos = 0)
-    targetTrackOffset = calculateTrackPosition(index, cards.length);
+    selectedCardIndex = index;
+    // Calculate target offset to bring this card to eye level (CENTER_OFFSET position)
+    targetTrackOffset = calculateTrackPosition(index, cards.length) - CENTER_OFFSET;
     animating = true;
+    updateCardHighlights();
 }
 
 export function rotateNext() {
     if (currentCardIndex < cards.length - 1) {
         currentCardIndex++;
+        selectedCardIndex = currentCardIndex;
         rotateToCard(currentCardIndex);
     }
 }
@@ -345,6 +369,7 @@ export function rotateNext() {
 export function rotatePrev() {
     if (currentCardIndex > 0) {
         currentCardIndex--;
+        selectedCardIndex = currentCardIndex;
         rotateToCard(currentCardIndex);
     }
 }
@@ -423,8 +448,12 @@ function onCanvasClick(event) {
         const cardIndex = clickedMesh.userData.cardIndex;
         const cardId = clickedMesh.userData.cardId;
 
-        if (cardIndex !== undefined && onCardClickCallback) {
-            onCardClickCallback(cardIndex, cardId);
+        if (cardIndex !== undefined) {
+            selectedCardIndex = cardIndex;
+            updateCardHighlights();
+            if (onCardClickCallback) {
+                onCardClickCallback(cardIndex, cardId);
+            }
         }
     }
 }

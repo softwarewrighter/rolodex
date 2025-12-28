@@ -14,6 +14,7 @@ pub enum AppMsg {
     SelectCardById(String),
     SaveCard(Card),
     DeleteCard(String),
+    DeleteCardFromForm(String),
     ClearAll,
     PopulateTestData,
     CancelForm,
@@ -94,6 +95,16 @@ impl Component for App {
                     self.update_filtered_cards();
                     self.selected_index = None;
                 }
+                true
+            }
+            AppMsg::DeleteCardFromForm(id) => {
+                if let Ok(cards) = CardStorage::delete_card(&id) {
+                    self.cards = cards;
+                    self.update_filtered_cards();
+                    self.selected_index = None;
+                }
+                self.show_form = false;
+                self.editing_card = None;
                 true
             }
             AppMsg::ClearAll => {
@@ -208,11 +219,13 @@ impl Component for App {
                 </footer>
 
                 {if self.show_form {
+                    let on_delete_from_form = ctx.link().callback(AppMsg::DeleteCardFromForm);
                     html! {
                         <CardForm
                             card={self.editing_card.clone()}
                             on_save={on_save}
                             on_cancel={on_cancel}
+                            on_delete={Some(on_delete_from_form)}
                         />
                     }
                 } else {
