@@ -117,40 +117,46 @@ function createRolodexStand() {
     scene.add(axle);
 }
 
-// Conveyor belt parameters
-const BELT_HEIGHT = 8;      // Total height of the conveyor belt ellipse
-const BELT_DEPTH = 4;       // Depth of the conveyor belt (front to back)
-const FRONT_CARD_COUNT = 5; // Number of cards visible in the front arc
-const CENTER_OFFSET = 0.5;  // Track position that appears at eye level (center front)
+// Card stack visualization parameters
+const VISIBLE_CARDS = 7;        // Number of cards visible at once
+const CARD_Y_SPACING = 0.6;     // Vertical space between cards
+const CARD_Z_SPACING = 0.3;     // Depth spacing (cards behind are further back)
+const MAX_TILT = 0.15;          // Maximum tilt angle for back cards (radians)
+const CENTER_OFFSET = 0.5;      // Track position that appears at center
 
-let selectedCardIndex = -1; // Currently selected card for highlighting
+let selectedCardIndex = -1;     // Currently selected card for highlighting
 
 // Calculate track position (0-1) for a card based on its index
-// Index 0 should be at CENTER_OFFSET (eye level)
 function calculateTrackPosition(index, totalCards) {
     if (totalCards <= 1) return CENTER_OFFSET;
-    // Spread cards evenly around the track, with index 0 at center
+    // Spread cards evenly, with index 0 at center
     const spacing = 1.0 / totalCards;
     return (CENTER_OFFSET + index * spacing) % 1.0;
 }
 
-// Get 3D position on conveyor belt from track position (0-1)
-// Track position 0.5 is center front (eye level), 0 and 1 are at the back
+// Get 3D position for card stack visualization
+// Position 0.5 is the center card (front and flat), cards spread up/down from there
 function getConveyorPosition(trackPos) {
-    // Map track position to angle: 0.5 = front center, 0/1 = back
-    const angle = (trackPos - 0.5) * Math.PI * 2;
+    // Calculate offset from center (-0.5 to 0.5)
+    let offset = trackPos - CENTER_OFFSET;
+    // Normalize to -0.5 to 0.5 range (wrap around)
+    if (offset > 0.5) offset -= 1;
+    if (offset < -0.5) offset += 1;
 
-    // Y position: sine wave for vertical movement
-    // Front cards (around trackPos 0.5) are at y=0, back cards go up/down
-    const y = Math.sin(angle) * (BELT_HEIGHT / 2);
+    // Map offset to visible card slots (-VISIBLE_CARDS/2 to +VISIBLE_CARDS/2)
+    const cardSlot = offset * VISIBLE_CARDS * 2;
 
-    // Z position: cosine for depth (front/back)
-    // Front cards are closer (higher z), back cards are further (lower z)
-    const z = Math.cos(angle) * (BELT_DEPTH / 2) + BELT_DEPTH / 2 + 1;
+    // Y position: cards stack vertically, center card at y=0
+    const y = -cardSlot * CARD_Y_SPACING;
 
-    // Rotation: cards tilt to face the camera
-    // Front cards face forward, back cards tilt away
-    const rotationX = -angle * 0.3;
+    // Z position: center card is closest, others recede back
+    // Use quadratic falloff so center card pops forward
+    const distFromCenter = Math.abs(cardSlot);
+    const z = 4 - distFromCenter * CARD_Z_SPACING;
+
+    // Rotation: center card is flat, cards above/below tilt slightly
+    // Cards above tilt back (negative), cards below tilt forward (positive)
+    const rotationX = cardSlot * MAX_TILT * 0.3;
 
     return { y, z, rotationX };
 }
