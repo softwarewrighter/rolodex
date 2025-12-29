@@ -37,17 +37,13 @@ impl Card {
         }
     }
 
-    /// Check if the card matches a search query (case-insensitive)
+    /// Check if the card matches a search query (case-insensitive, searches name only)
     pub fn matches_search(&self, query: &str) -> bool {
         if query.is_empty() {
             return true;
         }
         let query = query.to_lowercase();
         self.name.to_lowercase().contains(&query)
-            || self.email.to_lowercase().contains(&query)
-            || self.phone.to_lowercase().contains(&query)
-            || self.company.to_lowercase().contains(&query)
-            || self.notes.to_lowercase().contains(&query)
     }
 }
 
@@ -95,7 +91,7 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_card_matches_search_email() {
+    fn test_card_matches_search_name_only() {
         let card = Card::new(
             "John Doe".to_string(),
             "john@example.com".to_string(),
@@ -103,7 +99,9 @@ mod tests {
             "Acme Corp".to_string(),
             "Notes".to_string(),
         );
-        assert!(card.matches_search("example.com"));
+        // Search only matches name, not email
+        assert!(!card.matches_search("example.com"));
+        assert!(!card.matches_search("acme"));
     }
 
     #[wasm_bindgen_test]
