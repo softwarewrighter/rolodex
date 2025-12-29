@@ -27,10 +27,10 @@ export function initRolodex(containerIdParam) {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a2e);
 
-    // Camera setup - closer for better card visibility
+    // Camera setup - positioned to see the rolodex wheel
     const aspect = container.clientWidth / container.clientHeight;
-    camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
-    camera.position.set(0, 1, 8);
+    camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
+    camera.position.set(0, 0, 12);
     camera.lookAt(0, 0, 0);
 
     // Renderer setup
@@ -117,25 +117,22 @@ function createRolodexStand() {
     scene.add(axle);
 }
 
-// Card stack visualization parameters
-const VISIBLE_CARDS = 7;        // Number of cards visible at once
-const CARD_Y_SPACING = 0.6;     // Vertical space between cards
-const CARD_Z_SPACING = 0.3;     // Depth spacing (cards behind are further back)
-const MAX_TILT = 0.15;          // Maximum tilt angle for back cards (radians)
-const CENTER_OFFSET = 0.5;      // Track position that appears at center
+// Infinite rolodex parameters - few cards visible, rest compress to edges
+const FRONT_CARDS = 5;          // Number of cards fully visible in front
+const CENTER_OFFSET = 0.5;      // Track position that appears at front center
 
 let selectedCardIndex = -1;     // Currently selected card for highlighting
 
 // Calculate track position (0-1) for a card based on its index
 function calculateTrackPosition(index, totalCards) {
     if (totalCards <= 1) return CENTER_OFFSET;
-    // Spread cards evenly, with index 0 at center
+    // Spread cards evenly around the track
     const spacing = 1.0 / totalCards;
     return (CENTER_OFFSET + index * spacing) % 1.0;
 }
 
-// Get 3D position for card stack visualization
-// Position 0.5 is the center card (front and flat), cards spread up/down from there
+// Get 3D position for infinite rolodex visualization
+// ~5 cards visible in front, rest compress to edges at top/bottom
 function getConveyorPosition(trackPos) {
     // Calculate offset from center (-0.5 to 0.5)
     let offset = trackPos - CENTER_OFFSET;
@@ -143,20 +140,41 @@ function getConveyorPosition(trackPos) {
     if (offset > 0.5) offset -= 1;
     if (offset < -0.5) offset += 1;
 
-    // Map offset to visible card slots (-VISIBLE_CARDS/2 to +VISIBLE_CARDS/2)
-    const cardSlot = offset * VISIBLE_CARDS * 2;
+    // Scale offset to card positions
+    // offset * 100 gives approximate card distance from center
+    const cardDist = offset * 100;
+    const sign = cardDist >= 0 ? 1 : -1;
+    const absDist = Math.abs(cardDist);
 
-    // Y position: cards stack vertically, center card at y=0
-    const y = -cardSlot * CARD_Y_SPACING;
+    // Y position: front cards spread out, distant cards compress
+    let y;
+    if (absDist <= FRONT_CARDS) {
+        // Front cards: linear spacing
+        y = -cardDist * 0.55;
+    } else {
+        // Distant cards: compress using sqrt for gradual compression
+        const frontEdge = sign * FRONT_CARDS * 0.55;
+        const extra = Math.sqrt(absDist - FRONT_CARDS) * 0.25;
+        y = -frontEdge - sign * extra;
+    }
 
-    // Z position: center card is closest, others recede back
-    // Use quadratic falloff so center card pops forward
-    const distFromCenter = Math.abs(cardSlot);
-    const z = 4 - distFromCenter * CARD_Z_SPACING;
+    // Z position: center card pops forward, others recede quickly
+    // Use quadratic falloff so center card is clearly in front
+    const z = 4 - (absDist * absDist * 0.08) - Math.min(absDist * 0.1, 1);
 
-    // Rotation: center card is flat, cards above/below tilt slightly
-    // Cards above tilt back (negative), cards below tilt forward (positive)
-    const rotationX = cardSlot * MAX_TILT * 0.3;
+    // Rotation: center card flat, others tilt away more aggressively
+    let rotationX;
+    if (absDist <= 1) {
+        // Center card nearly flat
+        rotationX = cardDist * 0.03;
+    } else if (absDist <= FRONT_CARDS) {
+        // Nearby cards tilt moderately
+        rotationX = cardDist * 0.08;
+    } else {
+        // Distant cards tilt more
+        const baseTilt = sign * FRONT_CARDS * 0.08;
+        rotationX = baseTilt + sign * Math.min((absDist - FRONT_CARDS) * 0.02, 0.5);
+    }
 
     return { y, z, rotationX };
 }
@@ -259,7 +277,7 @@ function createCard(cardData, index, totalCards) {
     const trackPos = calculateTrackPosition(index, totalCards);
     const pos = getConveyorPosition(trackPos);
     group.position.x = 0;
-    group.position.y = pos.y + 1; // Offset to center vertically
+    group.position.y = pos.y; // Center vertically
     group.position.z = pos.z;
     group.rotation.x = pos.rotationX;
 
@@ -321,7 +339,7 @@ function updateCardPositions() {
         while (trackPos >= 1) trackPos -= 1;
 
         const pos = getConveyorPosition(trackPos);
-        group.position.y = pos.y + 1;
+        group.position.y = pos.y;
         group.position.z = pos.z;
         group.rotation.x = pos.rotationX;
     });
@@ -337,17 +355,23 @@ function updateCardHighlights() {
         const materials = card.material;
 
         if (Array.isArray(materials)) {
-            // Update front face material (index 4) to show selection
-            const frontMat = materials[4];
-            if (frontMat) {
-                frontMat.emissive = isSelected ? new THREE.Color(0x44ff44) : new THREE.Color(0x000000);
-                frontMat.emissiveIntensity = isSelected ? 0.3 : 0;
-            }
-            // Add glow to sides when selected
+            // Highlight edges AND add subtle border glow to front
+            // Materials: 0=right, 1=left, 2=top, 3=bottom, 4=front, 5=back
             materials.forEach((mat, i) => {
-                if (i !== 4 && mat.emissive !== undefined) {
-                    mat.emissive = isSelected ? new THREE.Color(0x44ff44) : new THREE.Color(0x000000);
-                    mat.emissiveIntensity = isSelected ? 0.2 : 0;
+                if (mat.emissive !== undefined) {
+                    if (i <= 3) {
+                        // Sides - bright cyan glow
+                        mat.emissive = isSelected ? new THREE.Color(0x00ffff) : new THREE.Color(0x000000);
+                        mat.emissiveIntensity = isSelected ? 1.0 : 0;
+                        mat.color = isSelected ? new THREE.Color(0x00cccc) : new THREE.Color(0xdddddd);
+                    } else if (i === 4 && isSelected) {
+                        // Front face - subtle highlight border effect (don't wash out text)
+                        mat.emissive = new THREE.Color(0x004444);
+                        mat.emissiveIntensity = 0.15;
+                    } else if (i === 4) {
+                        mat.emissive = new THREE.Color(0x000000);
+                        mat.emissiveIntensity = 0;
+                    }
                 }
             });
         }

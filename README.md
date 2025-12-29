@@ -2,11 +2,11 @@
 
 A 3D rolodex contact management application built with Rust/Yew and Three.js.
 
-![Screenshot](images/screenshot.png?ts=1735433719000)
+![Screenshot](images/screenshot.png?ts=1735437010000)
 
 ## Live Demo
 
-[Try the Live Demo](https://softwarewrighter.github.io/rolodex/?ts=1735433719000)
+[Try the Live Demo](https://softwarewrighter.github.io/rolodex/?ts=1735437010000)
 
 ## Features
 
