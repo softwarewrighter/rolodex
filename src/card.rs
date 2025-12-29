@@ -37,13 +37,13 @@ impl Card {
         }
     }
 
-    /// Check if the card matches a search query (case-insensitive, searches name only)
+    /// Check if the card name starts with the filter query (case-insensitive)
     pub fn matches_search(&self, query: &str) -> bool {
         if query.is_empty() {
             return true;
         }
         let query = query.to_lowercase();
-        self.name.to_lowercase().contains(&query)
+        self.name.to_lowercase().starts_with(&query)
     }
 }
 
@@ -77,7 +77,7 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_card_matches_search_name() {
+    fn test_card_matches_search_starts_with() {
         let card = Card::new(
             "John Doe".to_string(),
             "john@example.com".to_string(),
@@ -85,13 +85,18 @@ mod tests {
             "Acme Corp".to_string(),
             "Notes".to_string(),
         );
+        // Filter matches names starting with query
         assert!(card.matches_search("john"));
         assert!(card.matches_search("JOHN"));
-        assert!(card.matches_search("doe"));
+        assert!(card.matches_search("jo"));
+        assert!(card.matches_search("j"));
+        // Does not match middle of name
+        assert!(!card.matches_search("doe"));
+        assert!(!card.matches_search("ohn"));
     }
 
     #[wasm_bindgen_test]
-    fn test_card_matches_search_name_only() {
+    fn test_card_filter_name_only() {
         let card = Card::new(
             "John Doe".to_string(),
             "john@example.com".to_string(),
@@ -99,9 +104,10 @@ mod tests {
             "Acme Corp".to_string(),
             "Notes".to_string(),
         );
-        // Search only matches name, not email
+        // Filter only matches name start, not other fields
         assert!(!card.matches_search("example.com"));
         assert!(!card.matches_search("acme"));
+        assert!(!card.matches_search("555"));
     }
 
     #[wasm_bindgen_test]

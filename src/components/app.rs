@@ -206,7 +206,7 @@ impl Component for App {
 
                 <footer class="app-footer">
                     <div class="footer-content">
-                        <span class="copyright">{"(c) 2025 Software Wrighter"}</span>
+                        <span class="copyright">{"Copyright (c) 2025 Michael A Wright"}</span>
                         <span class="license">{"MIT License"}</span>
                         <span class="build-info">{format!(
                             "v{} | {} | {} | {}",
