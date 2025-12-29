@@ -389,19 +389,19 @@ export function rotateToCard(index) {
 }
 
 export function rotateNext() {
-    if (currentCardIndex < cards.length - 1) {
-        currentCardIndex++;
-        selectedCardIndex = currentCardIndex;
-        rotateToCard(currentCardIndex);
-    }
+    if (cards.length === 0) return;
+    // Wrap around: after last card (Z), go to first card (A)
+    currentCardIndex = (currentCardIndex + 1) % cards.length;
+    selectedCardIndex = currentCardIndex;
+    rotateToCard(currentCardIndex);
 }
 
 export function rotatePrev() {
-    if (currentCardIndex > 0) {
-        currentCardIndex--;
-        selectedCardIndex = currentCardIndex;
-        rotateToCard(currentCardIndex);
-    }
+    if (cards.length === 0) return;
+    // Wrap around: before first card (A), go to last card (Z)
+    currentCardIndex = (currentCardIndex - 1 + cards.length) % cards.length;
+    selectedCardIndex = currentCardIndex;
+    rotateToCard(currentCardIndex);
 }
 
 export function setCardClickCallback(callback) {
