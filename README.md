@@ -64,7 +64,9 @@ A 3D rolodex contact management application built with Rust/Yew and Three.js.
 
 ## Video Demo
 
-[![Video Demo](images/thumbnail1.png)](https://www.youtube.com/watch?v=uyjDtYSpyvg)
+[![Vibe Coding Playlist](images/thumbnail1.png)](https://www.youtube.com/playlist?list=PLKjvVAEaR4isvF2r_L4j9ycYHJ1KUL00J)
+
+[I Built a 3D App in Rust That Runs in Your Browser](https://www.youtube.com/watch?v=uyjDtYSpyvg)
 
 ## License
 
