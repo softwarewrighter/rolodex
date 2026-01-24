@@ -62,6 +62,10 @@ A 3D rolodex contact management application built with Rust/Yew and Three.js.
 - [Development Process](documentation/process.md) - Development workflow
 - [Development Tools](documentation/tools.md) - Recommended tools
 
+## Video Demo
+
+[![Video Demo](images/thumbnail1.png)](https://www.youtube.com/watch?v=uyjDtYSpyvg)
+
 ## License
 
 MIT License - Copyright 2025 Software Wrighter
